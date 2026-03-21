@@ -3,13 +3,14 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
+
 interface TerminalCommand {
   command: string;
   output: React.ReactNode;
   id: string; // Unique ID for keys
+  cwd: string;
 }
 
-// A simple typewriter effect component for string output
 const TypewriterText = ({ text, delay = 0, speed = 0.02 }: { text: string, delay?: number, speed?: number }) => {
   const letters = Array.from(text);
 
@@ -30,14 +31,13 @@ const TypewriterText = ({ text, delay = 0, speed = 0.02 }: { text: string, delay
     <motion.span variants={containerVariants} initial="hidden" animate="visible">
       {letters.map((letter, index) => (
         <motion.span key={index} variants={letterVariants}>
-          {letter === " " ? "\u00A0" : letter}
+          {letter === " " ? "00A0" : letter}
         </motion.span>
       ))}
     </motion.span>
   );
 };
 
-// A component to stagger the rendering of child elements (like lines of text)
 const StaggerGroup = ({ children, delay = 0, staggerDelay = 0.1, className = "" }: { children: React.ReactNode, delay?: number, staggerDelay?: number, className?: string }) => {
   const containerVariants = {
     hidden: { opacity: 1 },
@@ -54,7 +54,6 @@ const StaggerGroup = ({ children, delay = 0, staggerDelay = 0.1, className = "" 
   );
 };
 
-// Individual item within a StaggerGroup
 const StaggerItem = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => {
   const itemVariants = {
     hidden: { opacity: 0, x: -10 },
@@ -71,6 +70,9 @@ const StaggerItem = ({ children, className = "" }: { children: React.ReactNode, 
 export default function Home() {
   const [history, setHistory] = useState<TerminalCommand[]>([]);
   const [input, setInput] = useState("");
+  const [cwd, setCwd] = useState("~/portfolio");
+  const [commandHistory, setCommandHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
   const terminalEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -81,97 +83,202 @@ export default function Home() {
     scrollToBottom();
   }, [history]);
 
-  const handleCommand = (cmd: string) => {
-    const trimmedCmd = cmd.trim().toLowerCase();
+  const zshPrompt = (dir: string) => (
+    <span className="flex items-center gap-2 whitespace-nowrap">
+      <span className="text-[#00C853] font-bold">➜</span>
+      <span className="text-[#00E5FF] font-bold">{dir}</span>
+      <span className="text-[#FFC400] font-bold text-xs flex items-center gap-1">git:(<span className="text-error-dim">main</span>)<span className="text-secondary">✗</span></span>
+    </span>
+  );
 
-    if (trimmedCmd === "clear") {
+  const handleCommand = (cmd: string) => {
+    const trimmedCmd = cmd.trim();
+    const args = trimmedCmd.split(" ").filter(Boolean);
+    const baseCmd = args[0]?.toLowerCase() || "";
+
+    // Add to command history navigation array
+    if (trimmedCmd) {
+      setCommandHistory(prev => [trimmedCmd, ...prev]);
+    }
+    setHistoryIndex(-1);
+
+    if (baseCmd === "clear") {
       setHistory([]);
       return;
     }
 
     let output: React.ReactNode = null;
-    const id = Date.now().toString();
+    const id = Date.now().toString() + Math.random().toString(36).substring(2, 9);
+    let nextCwd = cwd;
 
-    switch (trimmedCmd) {
+    switch (baseCmd) {
       case "help":
         output = (
-          <StaggerGroup delay={0.1} staggerDelay={0.05} className="flex flex-col gap-1 mt-2 mb-4 text-outline-variant">
-            <StaggerItem className="text-primary mb-2">Available commands:</StaggerItem>
-            <div className="grid grid-cols-2 gap-2">
-              <StaggerItem><span className="text-secondary">about</span> <span className="ml-2">Display information about me</span></StaggerItem>
-              <StaggerItem><span className="text-secondary">skills</span> <span className="ml-2">List technical capabilities</span></StaggerItem>
-              <StaggerItem><span className="text-secondary">projects</span> <span className="ml-2">View project directory</span></StaggerItem>
-              <StaggerItem><span className="text-secondary">contact</span> <span className="ml-2">Show contact methods</span></StaggerItem>
-              <StaggerItem><span className="text-secondary">clear</span> <span className="ml-2">Clear terminal output</span></StaggerItem>
-              <StaggerItem><span className="text-secondary">help</span> <span className="ml-2">Show this help message</span></StaggerItem>
+          <div className="flex flex-col gap-1 mt-2 mb-4 text-on-surface-variant font-mono">
+            <p className="text-primary mb-2 font-bold">Available zsh commands:</p>
+            <div className="grid grid-cols-[100px_1fr] gap-x-4 gap-y-1">
+              <span className="text-secondary font-bold">ls</span><span>List directory contents</span>
+              <span className="text-secondary font-bold">cd</span><span>Change directory</span>
+              <span className="text-secondary font-bold">pwd</span><span>Print working directory</span>
+              <span className="text-secondary font-bold">whoami</span><span>Print effective userid</span>
+              <span className="text-secondary font-bold">cat</span><span>Concatenate and print files</span>
+              <span className="text-secondary font-bold">clear</span><span>Clear terminal screen</span>
+              <span className="text-secondary font-bold">help</span><span>Show this help message</span>
+              <span className="text-secondary font-bold">sudo</span><span>Execute command as superuser</span>
             </div>
-          </StaggerGroup>
+            <p className="mt-4 text-outline">Try navigating and reading files, e.g. <span className="text-tertiary">cat about.txt</span> or <span className="text-tertiary">./skills.sh</span></p>
+          </div>
         );
         break;
-      case "about":
-        output = (
-          <StaggerGroup delay={0.1} staggerDelay={0.1} className="mt-2 mb-4">
-            <StaggerItem className="text-on-surface"><TypewriterText text="Hello! I'm John Doe, a Software Engineer passionate about building" speed={0.01}/></StaggerItem>
-            <StaggerItem className="text-on-surface"><TypewriterText text="accessible, inclusive products and digital experiences." delay={0.5} speed={0.01}/></StaggerItem>
-            <StaggerItem className="text-tertiary mt-2"><TypewriterText text="STATUS: Available for new opportunities." delay={1} speed={0.02}/></StaggerItem>
-          </StaggerGroup>
-        );
-        break;
-      case "skills":
-        output = (
-          <StaggerGroup delay={0.1} staggerDelay={0.2} className="mt-2 mb-4">
-            <StaggerItem className="text-primary mb-2"><TypewriterText text="Loading Technical Skills Module..." speed={0.02} /></StaggerItem>
-            <div className="flex gap-4 mt-2">
-              <StaggerItem className="flex flex-col gap-1 border-l-2 border-secondary pl-2">
-                <span className="text-secondary text-xs uppercase tracking-widest">Frontend</span>
-                <span className="text-on-surface">React, Next.js, TypeScript</span>
-              </StaggerItem>
-              <StaggerItem className="flex flex-col gap-1 border-l-2 border-tertiary pl-2">
-                <span className="text-tertiary text-xs uppercase tracking-widest">Backend</span>
-                <span className="text-on-surface">Node.js, Python, PostgreSQL</span>
-              </StaggerItem>
+
+      case "ls":
+        if (cwd === "~/portfolio") {
+          output = (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-2 mb-4 text-on-surface-variant">
+              <span className="text-on-surface">about.txt</span>
+              <span className="text-tertiary font-bold">skills.sh*</span>
+              <span className="text-secondary font-bold">projects/</span>
+              <span className="text-on-surface">contact.json</span>
             </div>
-          </StaggerGroup>
-        );
-        break;
-      case "projects":
-        output = (
-          <StaggerGroup delay={0.1} staggerDelay={0.1} className="mt-2 mb-4">
-            <StaggerItem className="text-primary mb-2"><TypewriterText text="Scanning Projects Directory..." speed={0.02}/></StaggerItem>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2 text-on-surface-variant font-headline text-xs">
-              <StaggerItem className="flex items-center gap-2 hover:text-white cursor-pointer transition-colors"><span className="material-symbols-outlined text-[12px] text-secondary">folder</span> E-Commerce Platform</StaggerItem>
-              <StaggerItem className="flex items-center gap-2 hover:text-white cursor-pointer transition-colors"><span className="material-symbols-outlined text-[12px] text-tertiary">folder</span> Fitness Tracker App</StaggerItem>
-              <StaggerItem className="flex items-center gap-2 hover:text-white cursor-pointer transition-colors"><span className="material-symbols-outlined text-[12px] text-primary">folder</span> Weather API</StaggerItem>
+          );
+        } else if (cwd === "~/portfolio/projects") {
+           output = (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-2 mb-4 text-on-surface-variant">
+              <span className="text-secondary font-bold">ecommerce/</span>
+              <span className="text-secondary font-bold">fitness-app/</span>
+              <span className="text-secondary font-bold">weather-api/</span>
             </div>
-          </StaggerGroup>
-        );
+          );
+        } else {
+          output = <div className="mt-2 mb-4"></div>;
+        }
         break;
-      case "contact":
-        output = (
-          <StaggerGroup delay={0.1} staggerDelay={0.2} className="mt-2 mb-4 flex flex-col gap-1">
-            <StaggerItem className="text-on-surface">Email: <a href="mailto:hello@example.com" className="text-secondary hover:underline">hello@example.com</a></StaggerItem>
-            <StaggerItem className="text-on-surface">GitHub: <a href="#" className="text-secondary hover:underline">github.com/johndoe</a></StaggerItem>
-            <StaggerItem className="text-on-surface">LinkedIn: <a href="#" className="text-secondary hover:underline">linkedin.com/in/johndoe</a></StaggerItem>
-          </StaggerGroup>
-        );
+
+      case "pwd":
+        output = <div className="mt-2 mb-4 text-on-surface">{cwd.replace("~", "/Users/johndoe")}</div>;
         break;
+
+      case "whoami":
+        output = <div className="mt-2 mb-4 text-on-surface">johndoe</div>;
+        break;
+
+      case "echo":
+        output = <div className="mt-2 mb-4 text-on-surface">{args.slice(1).join(" ")}</div>;
+        break;
+
+      case "cd":
+        const target = args[1] || "~";
+        if (target === "~" || target === "~/portfolio" || target === ".." || target === "../") {
+           nextCwd = "~/portfolio";
+        } else if (target === "projects" || target === "./projects" || target === "projects/") {
+           if (cwd === "~/portfolio") {
+             nextCwd = "~/portfolio/projects";
+           } else {
+             output = <div className="mt-2 mb-4 text-error-dim">cd: no such file or directory: {target}</div>;
+           }
+        } else {
+           output = <div className="mt-2 mb-4 text-error-dim">cd: no such file or directory: {target}</div>;
+        }
+        break;
+
+      case "cat":
+        const file = args[1];
+        if (!file) {
+          output = <div className="mt-2 mb-4 text-error-dim">cat: missing operand</div>;
+        } else if ((file === "about.txt" || file === "./about.txt") && cwd === "~/portfolio") {
+          output = (
+            <div className="mt-2 mb-4 text-on-surface leading-relaxed max-w-2xl border-l-2 border-outline-variant pl-4">
+              <p>Hello! I&apos;m John Doe, a Software Engineer passionate about building</p>
+              <p>accessible, inclusive products and digital experiences.</p>
+              <p className="text-tertiary mt-4 font-bold">STATUS: Available for new opportunities.</p>
+            </div>
+          );
+        } else if ((file === "contact.json" || file === "./contact.json") && cwd === "~/portfolio") {
+          output = (
+            <pre className="mt-2 mb-4 text-on-surface"><code>{`{
+  "name": "John Doe",
+  "email": "hello@example.com",
+  "socials": {
+    "github": "github.com/johndoe",
+    "linkedin": "linkedin.com/in/johndoe"
+  }
+}`}</code></pre>
+          );
+        } else {
+          output = <div className="mt-2 mb-4 text-error-dim">cat: {file}: No such file or directory</div>;
+        }
+        break;
+
+      case "./skills.sh":
+      case "sh skills.sh":
+      case "bash skills.sh":
+        if (cwd === "~/portfolio") {
+          output = (
+            <div className="mt-2 mb-4">
+              <p className="text-primary mb-3 font-bold">Executing skills.sh ...</p>
+              <div className="flex gap-6">
+                <div className="flex flex-col gap-1 border-l-2 border-secondary pl-3">
+                  <span className="text-secondary text-xs uppercase tracking-widest mb-1">Frontend</span>
+                  <span className="text-on-surface">React, Next.js</span>
+                  <span className="text-on-surface">TypeScript, Tailwind</span>
+                </div>
+                <div className="flex flex-col gap-1 border-l-2 border-tertiary pl-3">
+                  <span className="text-tertiary text-xs uppercase tracking-widest mb-1">Backend</span>
+                  <span className="text-on-surface">Node.js, Python</span>
+                  <span className="text-on-surface">PostgreSQL, Redis</span>
+                </div>
+              </div>
+            </div>
+          );
+        } else {
+          output = <div className="mt-2 mb-4 text-error-dim">zsh: command not found: {trimmedCmd}</div>;
+        }
+        break;
+
+      case "sudo":
+        output = <div className="mt-2 mb-4 text-on-surface">johndoe is not in the sudoers file. This incident will be reported.</div>;
+        break;
+
       case "":
         output = null;
         break;
+
       default:
         output = (
-          <StaggerItem className="text-error-dim mt-2 mb-4">
-            <TypewriterText text={`Command not found: ${trimmedCmd}. Type 'help' to see available commands.`} speed={0.02}/>
-          </StaggerItem>
+          <div className="text-error-dim mt-2 mb-4">zsh: command not found: {baseCmd}</div>
         );
     }
 
-    setHistory((prev) => [...prev, { command: cmd, output, id }]);
+    setHistory((prev) => [...prev, { command: trimmedCmd, output, id, cwd }]);
+    if (nextCwd !== cwd) {
+      setCwd(nextCwd);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       handleCommand(input);
+      setInput("");
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (historyIndex < commandHistory.length - 1) {
+        const nextIndex = historyIndex + 1;
+        setHistoryIndex(nextIndex);
+        setInput(commandHistory[nextIndex]);
+      }
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (historyIndex > 0) {
+        const nextIndex = historyIndex - 1;
+        setHistoryIndex(nextIndex);
+        setInput(commandHistory[nextIndex]);
+      } else if (historyIndex === 0) {
+        setHistoryIndex(-1);
+        setInput("");
+      }
+    } else if (e.key === "l" && e.ctrlKey) {
+      e.preventDefault();
+      handleCommand("clear");
       setInput("");
     }
   };
@@ -189,14 +296,8 @@ export default function Home() {
             <span className="material-symbols-outlined text-sm">chevron_right</span>
             <span className="hover:text-primary transition-colors cursor-pointer">SYS.CORE</span>
             <span className="material-symbols-outlined text-sm">chevron_right</span>
-            <span className="text-secondary">TERMINAL_ENV</span>
+            <span className="text-secondary">ZSH_ENV</span>
           </div>
-        </div>
-        <div className="flex gap-4">
-          <button className="flex items-center gap-2 bg-surface-variant/20 backdrop-blur-md border border-primary/20 hover:border-primary/60 px-4 py-2 rounded-md transition-all group">
-            <span className="material-symbols-outlined text-sm text-primary group-hover:animate-spin">sync</span>
-            <span className="font-headline text-xs text-primary">SYNC_DATA</span>
-          </button>
         </div>
       </header>
 
@@ -208,51 +309,40 @@ export default function Home() {
           <div className="bg-surface-container p-4 rounded-xl border border-outline-variant/10">
             <p className="text-[10px] font-headline text-outline mb-4 tracking-widest uppercase">Directory_Structure</p>
             <div className="space-y-1 font-headline text-xs text-on-surface-variant">
-              <div className="flex items-center gap-2 p-2 hover:bg-white/5 rounded transition-colors group cursor-pointer" onClick={() => handleCommand("about")}>
+              <div className="flex items-center gap-2 p-2 hover:bg-white/5 rounded transition-colors group cursor-pointer" onClick={() => handleCommand("cat about.txt")}>
                 <span className="material-symbols-outlined text-sm text-primary">folder_open</span>
                 <span className="group-hover:text-primary transition-colors">ROOT</span>
               </div>
-              <div className="flex items-center gap-2 p-2 pl-6 hover:bg-white/5 rounded transition-colors group cursor-pointer" onClick={() => handleCommand("projects")}>
+              <div className="flex items-center gap-2 p-2 pl-6 hover:bg-white/5 rounded transition-colors group cursor-pointer" onClick={() => handleCommand("ls projects/")}>
                 <span className="material-symbols-outlined text-sm text-secondary">folder</span>
                 <span className="group-hover:text-secondary transition-colors">projects/</span>
               </div>
-              <div className="flex items-center gap-2 p-2 pl-10 hover:bg-white/5 rounded transition-colors group cursor-pointer bg-white/5 text-primary border-l-2 border-primary" onClick={() => handleCommand("skills")}>
+              <div className="flex items-center gap-2 p-2 pl-10 hover:bg-white/5 rounded transition-colors group cursor-pointer bg-white/5 text-primary border-l-2 border-primary" onClick={() => handleCommand("./skills.sh")}>
                 <span className="material-symbols-outlined text-sm text-tertiary">terminal</span>
                 <span className="text-primary font-bold">skills.sh</span>
               </div>
-              <div className="flex items-center gap-2 p-2 pl-10 hover:bg-white/5 rounded transition-colors group cursor-pointer" onClick={() => handleCommand("contact")}>
+              <div className="flex items-center gap-2 p-2 pl-10 hover:bg-white/5 rounded transition-colors group cursor-pointer" onClick={() => handleCommand("cat contact.json")}>
                 <span className="material-symbols-outlined text-xs text-outline">description</span>
                 <span className="group-hover:text-white transition-colors">contact.json</span>
               </div>
             </div>
           </div>
-
-          <div className="flex flex-col gap-4">
-            <div className="bg-surface-container-high p-4 rounded-xl border border-outline-variant/10 hover:border-primary/30 transition-all cursor-pointer">
-              <p className="text-[10px] font-headline text-secondary mb-1">STAGED_CHANGES</p>
-              <p className="text-sm font-headline text-on-surface">+ terminal_ui.css</p>
-            </div>
-            <div className="bg-surface-container-high p-4 rounded-xl border border-outline-variant/10 hover:border-tertiary/30 transition-all cursor-pointer">
-              <p className="text-[10px] font-headline text-tertiary mb-1">REMOTE_SYNC</p>
-              <p className="text-sm font-headline text-on-surface">32_COMMITS_AHEAD</p>
-            </div>
-          </div>
         </aside>
 
         {/* Central Terminal Window */}
-        <section className="flex-grow flex flex-col bg-surface-container-lowest/80 backdrop-blur-2xl rounded-xl border border-white/5 overflow-hidden relative shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
-          <div className="absolute inset-0 pointer-events-none scanline opacity-30 z-20"></div>
+        <section className="flex-grow flex flex-col bg-surface-container-lowest/90 backdrop-blur-2xl rounded-xl border border-white/5 overflow-hidden relative shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
+          <div className="absolute inset-0 pointer-events-none scanline opacity-20 z-20"></div>
 
           {/* Terminal Header */}
           <div className="bg-surface-container-high px-4 py-2 flex items-center justify-between border-b border-white/10 relative z-30">
             <div className="flex gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-error-dim"></div>
-              <div className="w-2.5 h-2.5 rounded-full bg-secondary-container"></div>
-              <div className="w-2.5 h-2.5 rounded-full bg-outline"></div>
+              <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E]"></div>
+              <div className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]"></div>
+              <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29]"></div>
             </div>
             <div className="text-[10px] font-headline text-outline tracking-[0.2em] flex items-center gap-2">
               <span className="material-symbols-outlined text-[12px]">terminal</span>
-              BASH — SESSION: 0XF92 — NEON_OBSERVATORY
+              johndoe@macbook-pro:~ — zsh — 80x24
             </div>
             <div className="flex gap-4">
               <span className="material-symbols-outlined text-sm text-outline cursor-pointer hover:text-white" onClick={() => setHistory([])}>delete</span>
@@ -260,50 +350,32 @@ export default function Home() {
           </div>
 
           {/* Terminal Output */}
-          <div className="flex-grow p-6 font-mono text-sm leading-relaxed overflow-y-auto custom-scrollbar relative z-30" onClick={() => document.getElementById("terminal-input")?.focus()}>
+          <div className="flex-grow p-6 font-mono text-[15px] leading-relaxed overflow-y-auto custom-scrollbar relative z-30" onClick={() => document.getElementById("terminal-input")?.focus()}>
 
             {/* Initial Boot Sequence Animation */}
-            <StaggerGroup delay={0.2} staggerDelay={0.2} className="mb-6">
-              <StaggerItem className="text-secondary mb-1">neonos_v2.0 login: <TypewriterText text="admin" delay={0.5} speed={0.1}/></StaggerItem>
-              <StaggerItem className="text-secondary mb-1">password: <TypewriterText text="********" delay={1.5} speed={0.05}/></StaggerItem>
-              <StaggerItem className="text-tertiary-dim mt-2 tracking-widest font-headline">ACCESS_GRANTED // SESSION_ID: 9912-X</StaggerItem>
-              <StaggerItem className="text-outline-variant mt-1 mb-4">----------------------------------------------------</StaggerItem>
-              <StaggerItem className="text-primary-dim"><TypewriterText text="Welcome to NEON_OBSERVATORY. Type 'help' to see available commands." delay={2} speed={0.02}/></StaggerItem>
+            <StaggerGroup delay={0.2} staggerDelay={0.1} className="mb-6">
+              <StaggerItem className="text-secondary mb-1 font-bold">Last login: {new Date().toUTCString().split(' ')[0]} {new Date().toUTCString().split(' ')[4]} on ttys001</StaggerItem>
+              <StaggerItem className="text-primary-dim mt-2"><TypewriterText text="Welcome to Oh My Zsh." delay={0.5} speed={0.02}/></StaggerItem>
+              <StaggerItem className="text-outline-variant mt-1 mb-4">Type &apos;help&apos; to see available commands.</StaggerItem>
             </StaggerGroup>
 
             {/* Render Command History */}
-            <AnimatePresence initial={false}>
-              {history.map((item) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="mb-2"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-primary">user@neon:</span>
-                    <span className="text-tertiary">~/portfolio</span>
-                    <span className="text-on-surface">$</span>
-                    <span className="text-on-surface ml-2">{item.command}</span>
-                  </div>
-                  <div>{item.output}</div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+            {history.map((item) => (
+              <div key={item.id} className="mb-1">
+                <div className="flex items-center gap-2">
+                  {zshPrompt(item.cwd)}
+                  <span className="text-on-surface ml-1">{item.command}</span>
+                </div>
+                {item.output}
+              </div>
+            ))}
 
             {/* Active Input Area */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 3 }}
-              className="flex items-center gap-2 mt-2"
-            >
-              <span className="text-primary">user@neon:</span>
-              <span className="text-tertiary">~/portfolio</span>
-              <span className="text-on-surface">$</span>
+            <div className="flex items-center gap-2 mt-1">
+              {zshPrompt(cwd)}
               <input
                 id="terminal-input"
-                className="bg-transparent border-none outline-none focus:ring-0 p-0 text-on-surface flex-grow font-mono caret-primary"
+                className="bg-transparent border-none outline-none focus:ring-0 p-0 text-on-surface flex-grow font-mono caret-white ml-1"
                 autoFocus
                 type="text"
                 value={input}
@@ -312,7 +384,7 @@ export default function Home() {
                 autoComplete="off"
                 spellCheck="false"
               />
-            </motion.div>
+            </div>
             <div ref={terminalEndRef} className="h-4" />
           </div>
         </section>
@@ -333,12 +405,6 @@ export default function Home() {
               <div className="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
                 <div className="h-full bg-gradient-to-r from-primary to-secondary w-[64%] animate-pulse"></div>
               </div>
-              <div className="flex gap-1 mt-2">
-                <div className="h-4 flex-grow bg-primary/20"></div>
-                <div className="h-4 flex-grow bg-primary/20"></div>
-                <div className="h-4 flex-grow bg-primary/20"></div>
-                <div className="h-4 flex-grow bg-primary/5"></div>
-              </div>
             </div>
 
             <div className="mb-8">
@@ -351,33 +417,22 @@ export default function Home() {
               </div>
               <p className="text-[10px] font-headline text-outline mt-2 tracking-tighter">LIMIT: 16.0 GB // SWAP: 2.1 GB</p>
             </div>
-
-            <div className="p-4 bg-surface-container-lowest rounded-lg border border-outline-variant/10">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-secondary shadow-[0_0_8px_#00affe] animate-pulse"></div>
-                <div className="flex-grow">
-                  <p className="text-[10px] font-headline text-on-surface uppercase">Uplink Stable</p>
-                  <p className="text-[10px] font-headline text-outline">LATENCY: 12ms</p>
-                </div>
-                <span className="material-symbols-outlined text-secondary text-lg">sensors</span>
-              </div>
-            </div>
           </div>
 
           <div className="mt-auto bg-surface-container/40 p-6 rounded-xl border-t border-white/5 backdrop-blur-sm">
-            <p className="text-[10px] font-headline text-outline mb-4 tracking-widest uppercase">Hotkeys</p>
+            <p className="text-[10px] font-headline text-outline mb-4 tracking-widest uppercase">Terminal Hotkeys</p>
             <div className="space-y-3">
               <div className="flex justify-between items-center text-[11px] font-headline">
-                <span className="text-on-surface-variant">NEW_TAB</span>
-                <span className="px-2 py-0.5 bg-surface-container-high rounded border border-white/5 text-primary">CTRL+T</span>
+                <span className="text-on-surface-variant">PREVIOUS CMD</span>
+                <span className="px-2 py-0.5 bg-surface-container-high rounded border border-white/5 text-primary">↑ UP</span>
               </div>
               <div className="flex justify-between items-center text-[11px] font-headline">
                 <span className="text-on-surface-variant">EXECUTE</span>
                 <span className="px-2 py-0.5 bg-surface-container-high rounded border border-white/5 text-primary">ENTER</span>
               </div>
               <div className="flex justify-between items-center text-[11px] font-headline">
-                <span className="text-on-surface-variant">CLEAR</span>
-                <span className="px-2 py-0.5 bg-surface-container-high rounded border border-white/5 text-primary">clear</span>
+                <span className="text-on-surface-variant">CLEAR SCREEN</span>
+                <span className="px-2 py-0.5 bg-surface-container-high rounded border border-white/5 text-primary">CTRL+L</span>
               </div>
             </div>
           </div>
@@ -386,12 +441,7 @@ export default function Home() {
 
       <footer className="w-full pt-6 flex flex-col md:flex-row justify-between items-center border-t border-white/5 mt-6 z-10">
         <div className="flex items-center gap-6 mb-4 md:mb-0">
-          <span className="text-tertiary font-bold font-headline text-[10px] tracking-[0.2em] uppercase">© 2024 NEON_OBSERVATORY // TERMINAL_ACCESS_GRANTED</span>
-        </div>
-        <div className="flex flex-wrap justify-center gap-4 md:gap-8">
-          <a className="font-headline text-[10px] tracking-[0.2em] uppercase text-outline hover:text-tertiary transition-colors" href="#">DOCUMENTATION</a>
-          <a className="font-headline text-[10px] tracking-[0.2em] uppercase text-outline hover:text-tertiary transition-colors" href="#">API_STATUS</a>
-          <a className="font-headline text-[10px] tracking-[0.2em] uppercase text-outline hover:text-tertiary transition-colors" href="#">SECURITY_PROT</a>
+          <span className="text-tertiary font-bold font-headline text-[10px] tracking-[0.2em] uppercase">© 2024 NEON_OBSERVATORY // ZSH_ACCESS_GRANTED</span>
         </div>
       </footer>
 
