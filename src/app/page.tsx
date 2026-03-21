@@ -1,12 +1,72 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface TerminalCommand {
   command: string;
   output: React.ReactNode;
+  id: string; // Unique ID for keys
 }
+
+// A simple typewriter effect component for string output
+const TypewriterText = ({ text, delay = 0, speed = 0.02 }: { text: string, delay?: number, speed?: number }) => {
+  const letters = Array.from(text);
+
+  const containerVariants = {
+    hidden: { opacity: 1 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: speed, delayChildren: delay }
+    }
+  };
+
+  const letterVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0 } }
+  };
+
+  return (
+    <motion.span variants={containerVariants} initial="hidden" animate="visible">
+      {letters.map((letter, index) => (
+        <motion.span key={index} variants={letterVariants}>
+          {letter === " " ? "\u00A0" : letter}
+        </motion.span>
+      ))}
+    </motion.span>
+  );
+};
+
+// A component to stagger the rendering of child elements (like lines of text)
+const StaggerGroup = ({ children, delay = 0, staggerDelay = 0.1, className = "" }: { children: React.ReactNode, delay?: number, staggerDelay?: number, className?: string }) => {
+  const containerVariants = {
+    hidden: { opacity: 1 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: staggerDelay, delayChildren: delay }
+    }
+  };
+
+  return (
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className={className}>
+      {children}
+    </motion.div>
+  );
+};
+
+// Individual item within a StaggerGroup
+const StaggerItem = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => {
+  const itemVariants = {
+    hidden: { opacity: 0, x: -10 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.2 } }
+  };
+
+  return (
+    <motion.div variants={itemVariants} className={className}>
+      {children}
+    </motion.div>
+  );
+};
 
 export default function Home() {
   const [history, setHistory] = useState<TerminalCommand[]>([]);
@@ -29,81 +89,84 @@ export default function Home() {
       return;
     }
 
-    let output: React.ReactNode = "";
+    let output: React.ReactNode = null;
+    const id = Date.now().toString();
 
     switch (trimmedCmd) {
       case "help":
         output = (
-          <div className="flex flex-col gap-1 mt-2 mb-4 text-outline-variant">
-            <p className="text-primary mb-2">Available commands:</p>
+          <StaggerGroup delay={0.1} staggerDelay={0.05} className="flex flex-col gap-1 mt-2 mb-4 text-outline-variant">
+            <StaggerItem className="text-primary mb-2">Available commands:</StaggerItem>
             <div className="grid grid-cols-2 gap-2">
-              <span className="text-secondary">about</span><span>Display information about me</span>
-              <span className="text-secondary">skills</span><span>List technical capabilities</span>
-              <span className="text-secondary">projects</span><span>View project directory</span>
-              <span className="text-secondary">contact</span><span>Show contact methods</span>
-              <span className="text-secondary">clear</span><span>Clear terminal output</span>
-              <span className="text-secondary">help</span><span>Show this help message</span>
+              <StaggerItem><span className="text-secondary">about</span> <span className="ml-2">Display information about me</span></StaggerItem>
+              <StaggerItem><span className="text-secondary">skills</span> <span className="ml-2">List technical capabilities</span></StaggerItem>
+              <StaggerItem><span className="text-secondary">projects</span> <span className="ml-2">View project directory</span></StaggerItem>
+              <StaggerItem><span className="text-secondary">contact</span> <span className="ml-2">Show contact methods</span></StaggerItem>
+              <StaggerItem><span className="text-secondary">clear</span> <span className="ml-2">Clear terminal output</span></StaggerItem>
+              <StaggerItem><span className="text-secondary">help</span> <span className="ml-2">Show this help message</span></StaggerItem>
             </div>
-          </div>
+          </StaggerGroup>
         );
         break;
       case "about":
         output = (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-2 mb-4">
-            <p className="text-on-surface">Hello! I&apos;m John Doe, a Software Engineer passionate about building</p>
-            <p className="text-on-surface">accessible, inclusive products and digital experiences.</p>
-            <p className="text-tertiary mt-2">STATUS: Available for new opportunities.</p>
-          </motion.div>
+          <StaggerGroup delay={0.1} staggerDelay={0.1} className="mt-2 mb-4">
+            <StaggerItem className="text-on-surface"><TypewriterText text="Hello! I'm John Doe, a Software Engineer passionate about building" speed={0.01}/></StaggerItem>
+            <StaggerItem className="text-on-surface"><TypewriterText text="accessible, inclusive products and digital experiences." delay={0.5} speed={0.01}/></StaggerItem>
+            <StaggerItem className="text-tertiary mt-2"><TypewriterText text="STATUS: Available for new opportunities." delay={1} speed={0.02}/></StaggerItem>
+          </StaggerGroup>
         );
         break;
       case "skills":
         output = (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-2 mb-4">
-            <p className="text-primary mb-2">Technical Skills_</p>
-            <div className="flex gap-4">
-              <div className="flex flex-col gap-1 border-l-2 border-secondary pl-2">
+          <StaggerGroup delay={0.1} staggerDelay={0.2} className="mt-2 mb-4">
+            <StaggerItem className="text-primary mb-2"><TypewriterText text="Loading Technical Skills Module..." speed={0.02} /></StaggerItem>
+            <div className="flex gap-4 mt-2">
+              <StaggerItem className="flex flex-col gap-1 border-l-2 border-secondary pl-2">
                 <span className="text-secondary text-xs uppercase tracking-widest">Frontend</span>
                 <span className="text-on-surface">React, Next.js, TypeScript</span>
-              </div>
-              <div className="flex flex-col gap-1 border-l-2 border-tertiary pl-2">
+              </StaggerItem>
+              <StaggerItem className="flex flex-col gap-1 border-l-2 border-tertiary pl-2">
                 <span className="text-tertiary text-xs uppercase tracking-widest">Backend</span>
                 <span className="text-on-surface">Node.js, Python, PostgreSQL</span>
-              </div>
+              </StaggerItem>
             </div>
-          </motion.div>
+          </StaggerGroup>
         );
         break;
       case "projects":
         output = (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-2 mb-4">
-            <p className="text-primary mb-2">Loading Projects Directory...</p>
+          <StaggerGroup delay={0.1} staggerDelay={0.1} className="mt-2 mb-4">
+            <StaggerItem className="text-primary mb-2"><TypewriterText text="Scanning Projects Directory..." speed={0.02}/></StaggerItem>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2 text-on-surface-variant font-headline text-xs">
-              <div className="flex items-center gap-2 hover:text-white cursor-pointer transition-colors"><span className="material-symbols-outlined text-[12px] text-secondary">folder</span> E-Commerce Platform</div>
-              <div className="flex items-center gap-2 hover:text-white cursor-pointer transition-colors"><span className="material-symbols-outlined text-[12px] text-tertiary">folder</span> Fitness Tracker App</div>
-              <div className="flex items-center gap-2 hover:text-white cursor-pointer transition-colors"><span className="material-symbols-outlined text-[12px] text-primary">folder</span> Weather API</div>
+              <StaggerItem className="flex items-center gap-2 hover:text-white cursor-pointer transition-colors"><span className="material-symbols-outlined text-[12px] text-secondary">folder</span> E-Commerce Platform</StaggerItem>
+              <StaggerItem className="flex items-center gap-2 hover:text-white cursor-pointer transition-colors"><span className="material-symbols-outlined text-[12px] text-tertiary">folder</span> Fitness Tracker App</StaggerItem>
+              <StaggerItem className="flex items-center gap-2 hover:text-white cursor-pointer transition-colors"><span className="material-symbols-outlined text-[12px] text-primary">folder</span> Weather API</StaggerItem>
             </div>
-          </motion.div>
+          </StaggerGroup>
         );
         break;
       case "contact":
         output = (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-2 mb-4 flex flex-col gap-1">
-            <p className="text-on-surface">Email: <a href="mailto:hello@example.com" className="text-secondary hover:underline">hello@example.com</a></p>
-            <p className="text-on-surface">GitHub: <a href="#" className="text-secondary hover:underline">github.com/johndoe</a></p>
-            <p className="text-on-surface">LinkedIn: <a href="#" className="text-secondary hover:underline">linkedin.com/in/johndoe</a></p>
-          </motion.div>
+          <StaggerGroup delay={0.1} staggerDelay={0.2} className="mt-2 mb-4 flex flex-col gap-1">
+            <StaggerItem className="text-on-surface">Email: <a href="mailto:hello@example.com" className="text-secondary hover:underline">hello@example.com</a></StaggerItem>
+            <StaggerItem className="text-on-surface">GitHub: <a href="#" className="text-secondary hover:underline">github.com/johndoe</a></StaggerItem>
+            <StaggerItem className="text-on-surface">LinkedIn: <a href="#" className="text-secondary hover:underline">linkedin.com/in/johndoe</a></StaggerItem>
+          </StaggerGroup>
         );
         break;
       case "":
-        output = "";
+        output = null;
         break;
       default:
         output = (
-          <p className="text-error-dim mt-2 mb-4">Command not found: {trimmedCmd}. Type &apos;help&apos; to see available commands.</p>
+          <StaggerItem className="text-error-dim mt-2 mb-4">
+            <TypewriterText text={`Command not found: ${trimmedCmd}. Type 'help' to see available commands.`} speed={0.02}/>
+          </StaggerItem>
         );
     }
 
-    setHistory((prev) => [...prev, { command: cmd, output }]);
+    setHistory((prev) => [...prev, { command: cmd, output, id }]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -198,29 +261,43 @@ export default function Home() {
 
           {/* Terminal Output */}
           <div className="flex-grow p-6 font-mono text-sm leading-relaxed overflow-y-auto custom-scrollbar relative z-30" onClick={() => document.getElementById("terminal-input")?.focus()}>
-            <div className="mb-6">
-              <p className="text-secondary mb-1">neonos_v2.0 login: <span className="text-on-surface">admin</span></p>
-              <p className="text-secondary mb-1">password: <span className="text-on-surface">********</span></p>
-              <p className="text-tertiary-dim mt-2 tracking-widest font-headline">ACCESS_GRANTED // SESSION_ID: 9912-X</p>
-              <p className="text-outline-variant mt-1 mb-4">----------------------------------------------------</p>
-              <p className="text-primary-dim">Welcome to NEON_OBSERVATORY. Type &apos;help&apos; to see available commands.</p>
-            </div>
+
+            {/* Initial Boot Sequence Animation */}
+            <StaggerGroup delay={0.2} staggerDelay={0.2} className="mb-6">
+              <StaggerItem className="text-secondary mb-1">neonos_v2.0 login: <TypewriterText text="admin" delay={0.5} speed={0.1}/></StaggerItem>
+              <StaggerItem className="text-secondary mb-1">password: <TypewriterText text="********" delay={1.5} speed={0.05}/></StaggerItem>
+              <StaggerItem className="text-tertiary-dim mt-2 tracking-widest font-headline">ACCESS_GRANTED // SESSION_ID: 9912-X</StaggerItem>
+              <StaggerItem className="text-outline-variant mt-1 mb-4">----------------------------------------------------</StaggerItem>
+              <StaggerItem className="text-primary-dim"><TypewriterText text="Welcome to NEON_OBSERVATORY. Type 'help' to see available commands." delay={2} speed={0.02}/></StaggerItem>
+            </StaggerGroup>
 
             {/* Render Command History */}
-            {history.map((item, index) => (
-              <div key={index} className="mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-primary">user@neon:</span>
-                  <span className="text-tertiary">~/portfolio</span>
-                  <span className="text-on-surface">$</span>
-                  <span className="text-on-surface ml-2">{item.command}</span>
-                </div>
-                <div>{item.output}</div>
-              </div>
-            ))}
+            <AnimatePresence initial={false}>
+              {history.map((item) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="mb-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-primary">user@neon:</span>
+                    <span className="text-tertiary">~/portfolio</span>
+                    <span className="text-on-surface">$</span>
+                    <span className="text-on-surface ml-2">{item.command}</span>
+                  </div>
+                  <div>{item.output}</div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
 
             {/* Active Input Area */}
-            <div className="flex items-center gap-2 mt-2">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 3 }}
+              className="flex items-center gap-2 mt-2"
+            >
               <span className="text-primary">user@neon:</span>
               <span className="text-tertiary">~/portfolio</span>
               <span className="text-on-surface">$</span>
@@ -232,9 +309,11 @@ export default function Home() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
+                autoComplete="off"
+                spellCheck="false"
               />
-            </div>
-            <div ref={terminalEndRef} />
+            </motion.div>
+            <div ref={terminalEndRef} className="h-4" />
           </div>
         </section>
 
