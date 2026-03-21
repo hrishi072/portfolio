@@ -1,25 +1,65 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-blue: #00d4ff;
-  --color-brand-purple: #b44aff;
-  --color-brand-green: #00ff88;
-  --color-brand-dark: #0a0a0a;
+  --color-inverse-surface: #faf8ff;
+  --color-error-dim: #d73357;
+  --color-on-tertiary-container: #1b0017;
+  --color-surface-bright: #1f2b49;
+  --color-tertiary: #ff59e3;
+  --color-on-error: #490013;
+  --color-error-container: #a70138;
+  --color-primary-fixed-dim: #9c7eff;
+  --color-on-tertiary: #42003a;
+  --color-on-secondary-fixed: #003855;
+  --color-on-background: #dee5ff;
+  --color-secondary-dim: #00a7f2;
+  --color-outline: #6d758c;
+  --color-secondary-fixed: #a7d7ff;
+  --color-primary-dim: #7e51ff;
+  --color-surface-container-low: #091328;
+  --color-on-primary-fixed-variant: #32008a;
+  --color-on-primary: #340090;
+  --color-tertiary-fixed-dim: #ff68e3;
+  --color-secondary-container: #006493;
+  --color-on-surface-variant: #a3aac4;
+  --color-surface-dim: #060e20;
+  --color-surface-container: #0f1930;
+  --color-on-secondary-fixed-variant: #00567f;
+  --color-background: #060e20;
+  --color-on-primary-container: #280072;
+  --color-on-primary-fixed: #000000;
+  --color-on-error-container: #ffb2b9;
+  --color-surface-tint: #b6a0ff;
+  --color-on-secondary: #002a42;
+  --color-on-tertiary-fixed: #33002d;
+  --color-tertiary-dim: #ff59e3;
+  --color-primary: #b6a0ff;
+  --color-tertiary-container: #ff05e5;
+  --color-surface-container-highest: #192540;
+  --color-on-secondary-container: #f3f8ff;
+  --color-surface: #060e20;
+  --color-on-surface: #dee5ff;
+  --color-outline-variant: #40485d;
+  --color-primary-container: #a98fff;
+  --color-secondary: #00affe;
+  --color-on-tertiary-fixed-variant: #6d0061;
+  --color-secondary-fixed-dim: #86cbff;
+  --color-surface-variant: #192540;
+  --color-error: #ff6e84;
+  --color-primary-fixed: #a98fff;
+  --color-tertiary-fixed: #ff85e4;
+  --color-surface-container-lowest: #000000;
+  --color-inverse-primary: #6834eb;
+  --color-inverse-on-surface: #4d556b;
 
-  --font-heading: 'Space Grotesk', sans-serif;
-  --font-body: 'Inter', sans-serif;
-  --font-code: 'Fira Code', monospace;
+  --font-headline: 'Space Grotesk', sans-serif;
+  --font-body: 'Manrope', sans-serif;
 }
 
 @layer base {
   :root {
-    --background: #ffffff;
-    --foreground: #0a0a0a;
-  }
-
-  .dark {
-    --background: #0a0a0a;
-    --foreground: #ffffff;
+    --background: #060e20;
+    --foreground: #dee5ff;
   }
 }
 
@@ -30,67 +70,26 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-heading);
+  font-family: var(--font-headline);
 }
 
-code {
-  font-family: var(--font-code);
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
 }
-
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(182, 160, 255, 0.2);
+    border-radius: 10px;
 }
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(182, 160, 255, 0.4);
 }
-.dark ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+.scanline {
+    background: linear-gradient(to bottom, transparent 50%, rgba(255,255,255,0.02) 51%);
+    background-size: 100% 4px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-brand-purple);
-}
-
-/* Utility classes */
-.glass {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.dark .glass {
-  background: rgba(10, 10, 10, 0.5);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.text-gradient {
-  background: linear-gradient(to right, var(--color-brand-blue), var(--color-brand-purple));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.neon-border {
-  position: relative;
-}
-
-.neon-border::before {
-  content: '';
-  position: absolute;
-  top: -2px; left: -2px; right: -2px; bottom: -2px;
-  background: linear-gradient(45deg, var(--color-brand-blue), var(--color-brand-purple), var(--color-brand-green));
-  z-index: -1;
-  border-radius: inherit;
-  filter: blur(8px);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.neon-border:hover::before {
-  opacity: 1;
+.crt-glow {
+    text-shadow: 0 0 5px rgba(182, 160, 255, 0.4);
 }
